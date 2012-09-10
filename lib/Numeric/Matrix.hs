@@ -31,10 +31,10 @@ import Numeric.Container
 
 -------------------------------------------------------------------
 
-instance Container Matrix a => Eq (Matrix a) where
+instance SContainer Matrix a => Eq (Matrix a) where
     (==) = equal
 
-instance (Container Matrix a, Num (Vector a)) => Num (Matrix a) where
+instance (SContainer Matrix a, Num (Vector a), Num a) => Num (Matrix a) where
     (+) = liftMatrix2Auto (+)
     (-) = liftMatrix2Auto (-)
     negate = liftMatrix negate

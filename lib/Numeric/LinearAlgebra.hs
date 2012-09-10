@@ -26,3 +26,5 @@ import Numeric.Container
 import Numeric.LinearAlgebra.Algorithms
 import Numeric.Matrix()
 import Numeric.Vector()
+import Numeric.LinearAlgebra.Util.Integer()
+

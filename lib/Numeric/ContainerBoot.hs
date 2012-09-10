@@ -23,7 +23,7 @@ module Numeric.ContainerBoot (
     -- * Basic functions
     ident, diag, ctrans,
     -- * Generic operations
-    Container(..),
+    SContainer(..), Container(..),
     -- * Matrix product and related functions
     Product(..),
     mXm,mXv,vXm,
@@ -65,29 +65,17 @@ type instance ArgOf Matrix a = a -> a -> a
 
 -------------------------------------------------------------------
 
+
 -- | Basic element-by-element functions for numeric containers
-class (Complexable c, Fractional e, Element e) => Container c e where
+class (Element e) => SContainer c e where
     -- | create a structure with a single element
     scalar      :: e -> c e
-    -- | complex conjugate
-    conj        :: c e -> c e
     scale       :: e -> c e -> c e
-    -- | scale the element by element reciprocal of the object:
-    --
-    -- @scaleRecip 2 (fromList [5,i]) == 2 |> [0.4 :+ 0.0,0.0 :+ (-2.0)]@
-    scaleRecip  :: e -> c e -> c e
     addConstant :: e -> c e -> c e
     add         :: c e -> c e -> c e
     sub         :: c e -> c e -> c e
-    -- | element by element multiplication
     mul         :: c e -> c e -> c e
-    -- | element by element division
-    divide      :: c e -> c e -> c e
     equal       :: c e -> c e -> Bool
-    --
-    -- element by element inverse tangent
-    arctan2     :: c e -> c e -> c e
-    --
     -- | cannot implement instance Functor because of Element class constraint
     cmap        :: (Element b) => (e -> b) -> c e -> c b
     -- | constant structure of given size
@@ -133,7 +121,7 @@ class (Complexable c, Fractional e, Element e) => Container c e where
     -- ,   0.0, 100.0,   7.0,  8.0
     -- ,   0.0,   0.0, 100.0, 12.0 ]@
     
-    cond :: RealElement e 
+    cond :: RealElement e
          => c e -- ^ a
          -> c e -- ^ b
          -> c e -- ^ l 
@@ -173,22 +161,38 @@ class (Complexable c, Fractional e, Element e) => Container c e where
           -> [(IndexOf c, e)] -- ^ association list
           -> c e              -- ^ result
 
+
+-- | Fractional element-by-element functions for numeric containers
+class (Complexable c, Fractional e, SContainer c e) => Container c e where
+    -- | complex conjugate
+    conj        :: c e -> c e
+    -- | scale the element by element reciprocal of the object:
+    --
+    -- @scaleRecip 2 (fromList [5,i]) == 2 |> [0.4 :+ 0.0,0.0 :+ (-2.0)]@
+    scaleRecip  :: e -> c e -> c e
+    -- | element by element division
+    divide      :: c e -> c e -> c e
+    -- | element by element inverse tangent
+    arctan2     :: c e -> c e -> c e
+
 --------------------------------------------------------------------------
 
 instance Container Vector Float where
-    scale = vectorMapValF Scale
     scaleRecip = vectorMapValF Recip
+    divide = vectorZipF Div
+    arctan2 = vectorZipF ATan2
+    conj = id
+
+instance SContainer Vector Float where
+    scale = vectorMapValF Scale
     addConstant = vectorMapValF AddConstant
     add = vectorZipF Add
     sub = vectorZipF Sub
     mul = vectorZipF Mul
-    divide = vectorZipF Div
     equal u v = dim u == dim v && maxElement (vectorMapF Abs (sub u v)) == 0.0
-    arctan2 = vectorZipF ATan2
     scalar x = fromList [x]
     konst = constantD
     build = buildV
-    conj = id
     cmap = mapVector
     atIndex = (@>)
     minIndex     = round . toScalarF MinIdx
@@ -203,20 +207,23 @@ instance Container Vector Float where
     accum = accumV
     cond = condV condF
 
+
 instance Container Vector Double where
-    scale = vectorMapValR Scale
     scaleRecip = vectorMapValR Recip
+    divide = vectorZipR Div
+    arctan2 = vectorZipR ATan2
+    conj = id
+
+instance SContainer Vector Double where
+    scale = vectorMapValR Scale
     addConstant = vectorMapValR AddConstant
     add = vectorZipR Add
     sub = vectorZipR Sub
     mul = vectorZipR Mul
-    divide = vectorZipR Div
     equal u v = dim u == dim v && maxElement (vectorMapR Abs (sub u v)) == 0.0
-    arctan2 = vectorZipR ATan2
     scalar x = fromList [x]
     konst = constantD
     build = buildV
-    conj = id
     cmap = mapVector
     atIndex = (@>)
     minIndex     = round . toScalarR MinIdx
@@ -231,20 +238,24 @@ instance Container Vector Double where
     accum = accumV
     cond = condV condD
 
+
 instance Container Vector (Complex Double) where
-    scale = vectorMapValC Scale
     scaleRecip = vectorMapValC Recip
+    divide = vectorZipC Div
+    arctan2 = vectorZipC ATan2
+    conj = conjugateC
+
+
+instance SContainer Vector (Complex Double) where
+    scale = vectorMapValC Scale
     addConstant = vectorMapValC AddConstant
     add = vectorZipC Add
     sub = vectorZipC Sub
     mul = vectorZipC Mul
-    divide = vectorZipC Div
     equal u v = dim u == dim v && maxElement (mapVector magnitude (sub u v)) == 0.0
-    arctan2 = vectorZipC ATan2
     scalar x = fromList [x]
     konst = constantD
     build = buildV
-    conj = conjugateC
     cmap = mapVector
     atIndex = (@>)
     minIndex     = minIndex . fst . fromComplex . (zipVectorWith (*) `ap` mapVector conjugate)
@@ -259,20 +270,24 @@ instance Container Vector (Complex Double) where
     accum = accumV
     cond = undefined -- cannot match
 
+
 instance Container Vector (Complex Float) where
-    scale = vectorMapValQ Scale
     scaleRecip = vectorMapValQ Recip
+    divide = vectorZipQ Div
+    arctan2 = vectorZipQ ATan2
+    conj = conjugateQ
+
+
+instance SContainer Vector (Complex Float) where
+    scale = vectorMapValQ Scale
     addConstant = vectorMapValQ AddConstant
     add = vectorZipQ Add
     sub = vectorZipQ Sub
     mul = vectorZipQ Mul
-    divide = vectorZipQ Div
     equal u v = dim u == dim v && maxElement (mapVector magnitude (sub u v)) == 0.0
-    arctan2 = vectorZipQ ATan2
     scalar x = fromList [x]
     konst = constantD
     build = buildV
-    conj = conjugateQ
     cmap = mapVector
     atIndex = (@>)
     minIndex     = minIndex . fst . fromComplex . (zipVectorWith (*) `ap` mapVector conjugate)
@@ -290,19 +305,21 @@ instance Container Vector (Complex Float) where
 ---------------------------------------------------------------
 
 instance (Container Vector a) => Container Matrix a where
-    scale x = liftMatrix (scale x)
     scaleRecip x = liftMatrix (scaleRecip x)
+    divide = liftMatrix2 divide
+    arctan2 = liftMatrix2 arctan2
+    conj = liftMatrix conj
+
+instance (SContainer Vector a, Num a) => SContainer Matrix a where
+    scale x = liftMatrix (scale x)
     addConstant x = liftMatrix (addConstant x)
     add = liftMatrix2 add
     sub = liftMatrix2 sub
     mul = liftMatrix2 mul
-    divide = liftMatrix2 divide
     equal a b = cols a == cols b && flatten a `equal` flatten b
-    arctan2 = liftMatrix2 arctan2
     scalar x = (1><1) [x]
     konst v (r,c) = reshape c (konst v (r*c))
     build = buildM
-    conj = liftMatrix conj
     cmap f = liftMatrix (mapVector f)
     atIndex = (@@>)
     minIndex m = let (r,c) = (rows m,cols m)
@@ -320,6 +337,7 @@ instance (Container Vector a) => Container Matrix a where
     assoc = assocM
     accum = accumM
     cond = condM
+
 
 ----------------------------------------------------
 

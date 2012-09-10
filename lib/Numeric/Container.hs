@@ -32,7 +32,7 @@ module Numeric.Container (
     diag, ident,
     ctrans,
     -- * Generic operations
-    Container(..),
+    SContainer(..), Container(..),
     -- * Matrix product
     Product(..),
     optimiseMult,

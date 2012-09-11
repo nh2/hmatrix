@@ -38,7 +38,11 @@ module Numeric.ContainerBoot (
     IndexOf,
     module Data.Complex,
     -- * Experimental
-    build', konst'
+    build', konst',
+    -- * Util
+    findV,findM,assocV,assocM,accumV,accumM,
+    buildV,buildM,
+    adaptScalar
 ) where
 
 import Data.Packed
@@ -618,4 +622,11 @@ condM a b l e t = reshape (cols a'') $ cond a' b' l' e' t'
 condV f a b l e t = f a' b' l' e' t'
   where
     [a', b', l', e', t'] = conformVs [a,b,l,e,t]
+
+-----------------------------------------------------------------------
+
+adaptScalar f1 f2 f3 x y
+    | dim x == 1 = f1   (x@>0) y
+    | dim y == 1 = f3 x (y@>0)
+    | otherwise = f2 x y
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, TypeFamilies #-}
 -----------------------------------------------------------------------------
 {- |
 Module      :  Numeric.LinearAlgebra.Util.Integer
@@ -16,8 +16,12 @@ module Numeric.LinearAlgebra.Util.Integer(
 
 import Data.Packed
 import Numeric.ContainerBoot
+import Data.List(elemIndex)
 
 -- reference implementation
+-- TODO: move default defs to the class
+--       create optimized instances for Int32, Int64
+--       check defs, create tests
 
 instance Element Int
 
@@ -27,37 +31,46 @@ instance SContainer Vector Int where
     add = zipVectorWith (+)
     sub = zipVectorWith subtract
     mul = zipVectorWith (*)
---    equal u v = dim u == dim v && maxElement (vectorMapF Abs (sub u v)) == 0.0
+    equal u v = dim u == dim v && maxElement (mapVector abs (sub u v)) == 0
     scalar x = fromList [x]
---    konst = constantD
---    build = buildV
+    konst v n = fromList (replicate n v)
+    build = buildV
     cmap = mapVector
     atIndex = (@>)
---    minIndex     = round . toScalarF MinIdx
---    maxIndex     = round . toScalarF MaxIdx
---    minElement  = toScalarF Min
---    maxElement  = toScalarF Max
---    sumElements  = sumF
---    prodElements = prodF
---    step = stepF
---    find = findV
---    assoc = assocV
---    accum = accumV
---    cond = condV condF
+    minIndex     = pos minimum
+    maxIndex     = pos maximum
+    minElement  = minimum . toList
+    maxElement  = maximum . toList
+    sumElements  = sum . toList
+    prodElements = product . toList
+    step = undefined -- cannot match (FIXME)
+    find = findV
+    assoc = assocV
+    accum = accumV
+    cond = undefined -- cannot match (FIXME)
 
-instance Product Int
+pos f v = p where
+    Just p = elemIndex (f l) l
+    l = toList v
 
 
-adaptScalar f1 f2 f3 x y
-    | dim x == 1 = f1   (x@>0) y
-    | dim y == 1 = f3 x (y@>0)
-    | otherwise = f2 x y
+type instance RealOf Int = Double
+
+instance Product Int where
+    multiply a b = fromLists [[ doth ai bj | bj <- toColumns b] | ai <- toRows a ]
+      where doth u v = sum $ zipWith (*) (toList u) (toList v)
+    dot u v = (asRow u `multiply` asColumn v) @@> (0,0)
+    absSum = fromIntegral . sumElements . mapVector abs
+    norm1 = absSum
+    norm2 v = sqrt $ fromIntegral (v `dot` v)
+    normInf = fromIntegral . maxElement . mapVector abs
+
 
 instance Num (Vector Int) where
     (+) = adaptScalar addConstant add (flip addConstant)
     negate = scale (-1)
     (*) = adaptScalar scale mul (flip scale)
-    -- signum = vectorMapF Sign
-    -- abs = vectorMapF Abs
+    signum = mapVector signum
+    abs = mapVector abs
     fromInteger = fromList . return . fromInteger
 

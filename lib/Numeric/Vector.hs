@@ -22,13 +22,7 @@ module Numeric.Vector () where
 
 import Numeric.GSL.Vector
 import Numeric.Container
-
--------------------------------------------------------------------
-
-adaptScalar f1 f2 f3 x y
-    | dim x == 1 = f1   (x@>0) y
-    | dim y == 1 = f3 x (y@>0)
-    | otherwise = f2 x y
+import Numeric.ContainerBoot(adaptScalar)
 
 ------------------------------------------------------------------
 

@@ -1,5 +1,5 @@
 Name:               hmatrix-gsl
-Version:            0.15.0.0
+Version:            0.16.0.0
 License:            GPL
 License-file:       LICENSE
 Author:             Alberto Ruiz
@@ -68,8 +68,6 @@ library
     if os(windows)
         extra-libraries: gsl-0
 
--- The extra-libraries required for GSL and LAPACK
--- should now be automatically detected by configure(.hs)
 
     extra-libraries: gsl
     extra-lib-dirs:

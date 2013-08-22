@@ -511,15 +511,27 @@ type instance ElementOf (Matrix a) = a
 class Build f where
     build' :: BoundsOf f -> f -> ContainerOf f
 
+#if __GLASGOW_HASKELL__ <= 706
 type family BoundsOf x
 
 type instance BoundsOf (a->a->a) = (Int,Int)
 type instance BoundsOf (a->a) = Int
+#else
+type family BoundsOf x where
+    BoundsOf (a->a->a) = (Int,Int)
+    BoundsOf (a->a) = Integer
+#endif
 
+#if __GLASGOW_HASKELL__ <= 706
 type family ContainerOf x
 
 type instance ContainerOf (a->a->a) = Matrix a
 type instance ContainerOf (a->a) = Vector a
+#else
+type family ContainerOf x where
+    ContainerOf (a->a->a) = Matrix a
+    ContainerOf (a->a) = Vector a
+#endif
 
 instance (Element a, Num a) => Build (a->a) where
     build' = buildV

@@ -43,6 +43,7 @@ module Numeric.ContainerBoot (
 
 import Data.Packed
 import Data.Packed.ST as ST
+import Foreign.Storable
 import Numeric.Conversion
 import Data.Packed.Internal
 import Numeric.GSL.Vector
@@ -526,10 +527,12 @@ instance (Element a, Num a) => Build (a->a) where
 instance (Element a, Num a) => Build (a->a->a) where
     build' = buildM
 
+buildM :: (Integral a, Integral b, Num x, Num y, Element e) => (a, b) -> (x -> y -> e) -> Matrix e
 buildM (rc,cc) f = fromLists [ [f r c | c <- cs] | r <- rs ]
     where rs = map fromIntegral [0 .. (rc-1)]
           cs = map fromIntegral [0 .. (cc-1)]
 
+buildV :: (Integral a, Num b, Storable c) => a -> (b -> c) -> Vector c
 buildV n f = fromList [f k | k <- ks]
     where ks = map fromIntegral [0 .. (n-1)]
 

@@ -61,8 +61,8 @@ type instance IndexOf Matrix = (Int,Int)
 
 type family ArgOf (c :: * -> *) a
 
-type instance ArgOf Vector a = a -> a
-type instance ArgOf Matrix a = a -> a -> a
+type instance ArgOf Vector a = Int -> a
+type instance ArgOf Matrix a = Int -> Int -> a
 
 -------------------------------------------------------------------
 
@@ -508,43 +508,41 @@ type instance ElementOf (Matrix a) = a
 
 ------------------------------------------------------------
 
-class Build f where
-    build' :: BoundsOf f -> f -> ContainerOf f
+-- class Build bs a where
+    -- build' :: bs -> BuilderOf bs a
+-- class Build c e where
+    -- build' :: IndexOf c -> ArgOf c e -> c e
+class Build c where
+    build' :: (Element e) => IndexOf c -> ArgOf c e -> c e
 
-#if __GLASGOW_HASKELL__ <= 706
-type family BoundsOf x
 
-type instance BoundsOf (a->a->a) = (Int,Int)
-type instance BoundsOf (a->a) = Int
-#else
-type family BoundsOf x where
-    BoundsOf (a->a->a) = (Int,Int)
-    BoundsOf (a->a) = Integer
-#endif
+-- type family BuilderOf x a where
 
-#if __GLASGOW_HASKELL__ <= 706
-type family ContainerOf x
+--     BuilderOf Int       a = (Int -> a)        -> Vector a
+--     BuilderOf (Int,Int) a = (Int -> Int -> a) -> Matrix a
 
-type instance ContainerOf (a->a->a) = Matrix a
-type instance ContainerOf (a->a) = Vector a
-#else
-type family ContainerOf x where
-    ContainerOf (a->a->a) = Matrix a
-    ContainerOf (a->a) = Vector a
-#endif
 
-instance (Element a, Num a) => Build (a->a) where
+-- instance (Element a, Num a) => Build Int a where
+-- instance (Element e) => Build Vector e where
+instance Build Vector where
     build' = buildV
 
-instance (Element a, Num a) => Build (a->a->a) where
+-- instance (Element a, Num a) => Build (Int, Int) a where
+-- instance (Element a, Num a, b ~ Int, c ~ Int) => Build (b, c) a where
+-- instance (Element e) => Build Matrix e where
+instance Build Matrix where
     build' = buildM
 
-buildM :: (Integral a, Integral b, Num x, Num y, Element e) => (a, b) -> (x -> y -> e) -> Matrix e
+-- buildM :: (Integral a, Integral b, Num x, Num y, Element e) => (a, b) -> (x -> y -> e) -> Matrix e
+-- buildM :: (Integral a, Integral b, Num a, Num b, Element e) => (a, b) -> (a -> b -> e) -> Matrix e
+-- buildM :: (Element e) => (Int, Int) -> (Int -> Int -> e) -> Matrix e
+buildM :: (Element e) => IndexOf Matrix -> ArgOf Matrix e -> Matrix e
 buildM (rc,cc) f = fromLists [ [f r c | c <- cs] | r <- rs ]
     where rs = map fromIntegral [0 .. (rc-1)]
           cs = map fromIntegral [0 .. (cc-1)]
 
-buildV :: (Integral a, Num b, Storable c) => a -> (b -> c) -> Vector c
+-- buildV :: (Integral a, Num b, Storable c) => a -> (b -> c) -> Vector c
+buildV :: (Element e) => IndexOf Vector -> ArgOf Vector e -> Vector e
 buildV n f = fromList [f k | k <- ks]
     where ks = map fromIntegral [0 .. (n-1)]
 

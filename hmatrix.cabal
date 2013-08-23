@@ -138,9 +138,7 @@ library
 
  -- ghc-prof-options:   -auto
 
-    ghc-options:  -Wall -fno-warn-missing-signatures
-                        -fno-warn-orphans
-                        -fno-warn-unused-binds
+    ghc-options:  -Wall
 
     if flag(unsafe)
         cpp-options: -DUNSAFE
